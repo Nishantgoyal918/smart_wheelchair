@@ -29,7 +29,7 @@ $ catkin_make
 ```
 
 # Running Turtlebot3 Simulation on Corridor map
-Copy the ```turtlebot3_corridor.launch``` file from ```catkin_ws/src/smart_wheelchair/extras/turtlebot3_corridor.launch``` to ```catkin_ws/src/smart_wheelchair/turtlebot3_gazebo/launch/```
+Copy the ```turtlebot3_corridor.launch``` file from ```catkin_ws/src/smart_wheelchair/extras/turtlebot3_corridor.launch``` to ```catkin_ws/src/turtlebot3_simulations/turtlebot3_gazebo/launch/```
 
 ## Launching Turtlebot3 Gazebo Simulation
 Now,

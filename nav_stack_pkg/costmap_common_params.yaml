@@ -1,0 +1,28 @@
+
+# footprint: [[ 0.4,  0.4],[-0.4,  0.4], [-0.4, -0.4], [0.4, -0.4], [0.5, 0]]
+footprint: [[-0.205, -0.155], [-0.205, 0.155], [0.077, 0.155], [0.077, -0.155]]
+# footprint_padding: -0.05
+
+inflation_layer:
+  inflation_radius: 0.2 #0.08
+
+# cost_scaling_factor: 1.5 #3.0 #3.0
+
+transform_tolerance: 2
+
+obstacle_layer:
+    obstacle_range: 3.0 #4.0
+    raytrace_range: 3.5 #3.0
+
+    observation_sources: laser_scan_sensor
+
+
+    laser_scan_sensor: {
+      sensor_frame: base_scan, #base_link,
+      data_type: LaserScan, 
+      topic: /scan,
+      inf_is_valid: true, 
+      marking: true, 
+      clearing: true,
+    }
+  

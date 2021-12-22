@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <include file="$(find nuric_wheelchair_model_02)/launch/turtlebot3_house_world.launch" >
+        <arg name="paused" value="false"/>
+        <arg name="gui" value="true"/>
+        <arg name="headless" value="false"/>
+
+        <arg name="world_name" value="/catkin_ws/src/smart_wheelchair/worlds/corridor_4.world" />
+    </include>
+
+    <include file="$(find nuric_wheelchair_model_02)/launch/wheelchair_base.launch" />
+
+	<!-- joy node(s) -->
+	<!--
+  	<node respawn="true" pkg="joy" type="joy_node" name="wheelchair_joy" />
+  	<node respawn="true" pkg="nuric_wheelchair_model_02" type="joy_teleop.py" name="joy_teleop" />
+	-->
+	
+	<!-- get_caster_joints node -->
+	<!--
+	<node respawn="true" pkg="nuric_wheelchair_model_02" type="get_caster_joints.py" name="get_caster_joints" />
+	-->
+
+</launch>

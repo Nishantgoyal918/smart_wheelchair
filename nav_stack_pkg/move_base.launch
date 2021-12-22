@@ -1,0 +1,30 @@
+<launch>
+
+   <master auto="start"/>
+
+ <!--- Run AMCL --> 
+    <!-- <include file="$(find amcl)/examples/amcl_diff.launch" /> -->
+
+   <node name="map_server" pkg="map_server" type="map_server" args="/catkin_ws/src/smart_wheelchair/maps/corridor_map.yaml"/>
+
+ <!--- Run AMCL --> 
+   <!-- <include file="$(find amcl)/examples/amcl_diff.launch" /> -->
+
+
+
+   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam file="$(find nav_stack_pkg)/costmap_common_params.yaml" command="load" ns="global_costmap" /> 
+    <rosparam file="$(find nav_stack_pkg)/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find nav_stack_pkg)/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find nav_stack_pkg)/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find nav_stack_pkg)/move_base_params.yaml" command="load" /> 
+    <rosparam file="$(find nav_stack_pkg)/dwa_local_planner_params.yaml" command="load" />
+
+    <remap from="cloud_in"             to="/rtabmap/cloud_map"/>  
+    <!-- <remap from="map"                  to="/rtabmap/grid_map"/>  -->
+    <!-- <remap from="scan"                 to="/scan"/> -->
+    <remap from="odom"                 to="/rtabmap/odom/" />
+
+ </node>
+
+</launch> 

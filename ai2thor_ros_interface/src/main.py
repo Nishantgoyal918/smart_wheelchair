@@ -19,7 +19,7 @@ Config:
 config = {
 
     # ROS Params
-    'ROS_NODE_NAME': "ai2thor_interface",
+    'ROS_NODE_NAME': "ai2thor_ros_interface",
 
     # PUBLISH
     'RGB_TOPIC': "/camera/rgb/image_raw",
@@ -46,9 +46,9 @@ config = {
     'GRID_SIZE': 0.001,
     'MOVEMENT_GAUSS_SIGMA': 0.005,
 
-    'CAM_WIDTH': 300,
-    'CAM_HEIGHT': 300,
-    'CAM_FOV': 60,
+    'CAM_WIDTH': 640,
+    'CAM_HEIGHT': 480,
+    'CAM_FOV': 70,
 
 }
 
@@ -91,7 +91,7 @@ class Ai2ThorNode:
             visibilityDistance=self.config['VISIBILITY_DIST'],
             scene=self.config['SCENE'],
             gridSize=self.config['GRID_SIZE'],
-            movementGaussianSigma=self.config['MOVEMENT_GAUSS_SIGMA']
+            movementGaussianSigma=self.config['MOVEMENT_GAUSS_SIGMA'],
             
             width=self.config['CAM_WIDTH'],
             height=self.config['CAM_HEIGHT'],
@@ -303,3 +303,7 @@ class Ai2ThorNode:
         camera_info_msg.P = [fx, 0, cx, 0, 0, fy, cy, 0, 0, 0, 1, 0]
 
         return camera_info_msg
+
+
+node = Ai2ThorNode(config)
+node.simulate()

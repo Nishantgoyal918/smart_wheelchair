@@ -61,3 +61,26 @@ $ catkin_ws
 $ source devel/setup.bash
 $ roslaunch nav_stack_pkg move_base.launch
 ```
+
+# Using Ai2Thor ROS Interface
+In new terminal,
+```
+$ roscore
+```
+
+## Publishing required static tfs
+In new terminal,
+```
+$ rosrun tf static_transform_publisher 0 0 0 0 0 0 base_link camera_link 50
+$ rosrun tf static_transform_publisher 0 0 0 -1.5708 0 -1.5708 camera_link camera 50
+$ rosrun tf static_transform_publisher 0 0 0 0 0 0 odom base_link 50
+```
+
+## Running Ai2Thor ROS Interface
+In new terminal,
+```
+$ cd ai2thor_ros_interface
+$ catkin_make
+$ source devel/setup.bash
+$ rosrun ai2thor_ros_interface main.py
+```

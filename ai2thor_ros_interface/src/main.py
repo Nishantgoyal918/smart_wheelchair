@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from typing import Union
 import rospy
 from cv_bridge import CvBridge
@@ -19,12 +21,13 @@ Config:
 config = {
 
     # ROS Params
-    'ROS_NODE_NAME': "ai2thor_ros_interface",
+    'ROS_NODE_NAME': "ai2thor_interface",
 
     # PUBLISH
     'RGB_TOPIC': "/camera/rgb/image_raw",
     'DEPTH_TOPIC': "/camera/depth/image_raw",
-    'CAMERA_INFO_TOPIC': "/camera/rgb/camera_info",
+    'CAMERA_RGB_INFO_TOPIC': "/camera/rgb/camera_info",
+    'CAMERA_DEPTH_INFO_TOPIC': "/camera/depth/camera_info",
     
     'PUB_QUEUE_SIZE': 20,
     'PUB_RATE': 20,
@@ -33,13 +36,13 @@ config = {
     'VEL_TOPIC': "/cmd_vel",
 
     # MOVE_BASE
-    'CONTROLLER_FREQ': 20,
+    'CONTROLLER_FREQ': 10,
 
 
 
     # Ai2Thor Params
     'AGENT_MODE': "locobot",
-    'VISIBILITY_DIST': 1.5,
+    'VISIBILITY_DIST': 100, #1.5,
 
     'SCENE': "FloorPlan_Train1_3",
     
@@ -48,7 +51,7 @@ config = {
 
     'CAM_WIDTH': 640,
     'CAM_HEIGHT': 480,
-    'CAM_FOV': 70,
+    'CAM_FOV': 90, #70,
 
 }
 
@@ -82,6 +85,7 @@ class Ai2ThorNode:
 
         # Start ROS Node
         rospy.init_node(self.config['ROS_NODE_NAME'])
+        self.rate = rospy.Rate(self.config['PUB_RATE'])
 
 
         # Ai2Thor Controller
@@ -100,18 +104,33 @@ class Ai2ThorNode:
         )
 
 
+        self.action_msg = None
+        self.update_action_msg = None
+        self.action_update_time = None
+
+
         # CVBridge
         self.cv_bridge = CvBridge()
 
         # ROS Publishers
         self.rgb_publisher = rospy.Publisher(self.config['RGB_TOPIC'], Image, queue_size=self.config['PUB_QUEUE_SIZE'])
         self.depth_publisher = rospy.Publisher(self.config['DEPTH_TOPIC'], Image, queue_size=self.config['PUB_QUEUE_SIZE'])
-        self.camera_info_publisher = rospy.Publisher(self.config['CAMERA_INFO_TOPIC'], Image, queue_size=self.config['PUB_QUEUE_SIZE'])
+        self.camera_rgb_info_publisher = rospy.Publisher(self.config['CAMERA_RGB_INFO_TOPIC'], CameraInfo, queue_size=self.config['PUB_QUEUE_SIZE'])
+        self.camera_depth_info_publisher = rospy.Publisher(self.config['CAMERA_DEPTH_INFO_TOPIC'], CameraInfo, queue_size=self.config['PUB_QUEUE_SIZE'])
 
         # ROS Subscribers
         self.vel_subscriber = rospy.Subscriber(self.config['VEL_TOPIC'], Twist, callback=self.velocity_callback)
 
 
+
+    def update_action(
+        self,
+        ) -> None:
+        if self.action_update_time is None:
+            self.update_action_msg = None
+        else:
+            if self.action_update_time - rospy.Time.now().to_sec() >= 10 * (1 / self.controller_freq):
+                self.update_action_msg = None
 
 
     def simulate(
@@ -121,12 +140,16 @@ class Ai2ThorNode:
         '''
         simulate: Simulation Loop
         '''
-
-        rate = rospy.Rate(self.config['PUB_RATE'])
         
         while True:
-            self.step()
-            rate.sleep()
+
+            self.step(self.action_msg)
+            self.update_action()
+            self.action_msg = self.update_action_msg
+            # self.action_msg = None # Commented This
+            self.rate.sleep() # Commented This
+
+
 
 
 
@@ -144,12 +167,16 @@ class Ai2ThorNode:
         forward_dist = velocity_msg.linear.x * (1 / self.controller_freq)
         angular_dist = velocity_msg.angular.z * (1 / self.controller_freq)
 
-        action_msg = {
+        # print("VELOCITY: ", forward_dist, ", ", angular_dist)
+
+        self.action_msg = {
             'FORWARD': forward_dist,
-            'ROTATE': angular_dist * 180 / math.pi
+            'ROTATE': (angular_dist * 180) / math.pi
         }
 
-        self.step(action_msg)
+        self.update_action_msg = self.action_msg
+        self.action_update_time = rospy.Time.now().to_sec()
+        # self.step(action_msg)
 
     
 
@@ -168,7 +195,10 @@ class Ai2ThorNode:
         if action_msg is None:
             
             self.publish_state(    
-                self.controller.step("Done")
+                    self.controller.step(
+                        action = "MoveAhead",
+                        moveMagnitude = 0.0
+                    )
                 )
 
         else:
@@ -182,7 +212,7 @@ class Ai2ThorNode:
             
             
             # Rotate
-            if action_msg['ROTATE'] >= 0:
+            if action_msg['ROTATE'] >= 0.001:
 
                 self.publish_state(
                     self.controller.step(
@@ -191,7 +221,7 @@ class Ai2ThorNode:
                     )
                 )
             
-            else:
+            elif action_msg['ROTATE'] <= -0.001:
 
                 self.publish_state(
                     self.controller.step(
@@ -199,6 +229,13 @@ class Ai2ThorNode:
                         degrees = abs(action_msg['ROTATE'])
                     )
                 )
+            
+            else:
+
+                pass
+            
+        # self.action_msg = None # Uncommented This
+        # self.rate.sleep() # Uncommented This
                 
 
     
@@ -215,19 +252,24 @@ class Ai2ThorNode:
         '''
         header = self.to_header(rospy.Time.now())
 
-        self.rgb_publisher.publish(self.convert_to_img_msg(event.cv2img, header))
-        self.depth_publisher.publish(self.convert_to_img_msg(event.depth_frame.astype('uint8'), header))
-        self.camera_info_publisher.publish(self.make_camera_info_msg(header, height=self.config['CAM_HEIGHT'], 
-                                                                        width=self.config['CAM_WIDTH']))
+        self.rgb_publisher.publish(self.convert_to_img_msg(event.frame, header, "rgb8"))
+        # self.depth_publisher.publish(self.convert_to_img_msg(event.depth_frame.astype('uint16'), header, "mono16"))
+        self.depth_publisher.publish(self.convert_to_img_msg(event.depth_frame, header, "mono16"))
+
+        camera_info_msg = self.make_camera_info_msg(header, height=self.config['CAM_HEIGHT'], 
+                                                                        width=self.config['CAM_WIDTH'])
+
+        self.camera_rgb_info_publisher.publish(camera_info_msg)
+        self.camera_depth_info_publisher.publish(camera_info_msg)
 
         pass
-
 
 
     def convert_to_img_msg(
         self,
         cv2img: np.array,
-        header: Header
+        header: Header,
+        encoding: str,
         ) -> Image:
 
         '''
@@ -243,6 +285,9 @@ class Ai2ThorNode:
 
         img_msg = self.cv_bridge.cv2_to_imgmsg(cv2img)
         img_msg.header = header
+        
+        if encoding == "rgb8":
+            img_msg.encoding = encoding
 
         return img_msg
 
@@ -265,6 +310,7 @@ class Ai2ThorNode:
 
         header = Header()
         header.stamp = timestamp
+        header.frame_id = "camera"
 
         return header
 
